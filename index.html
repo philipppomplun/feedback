@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback-Sammler</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Space Grotesk -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        /* Brutalistischer Schatten-Effekt */
+        .brutal-shadow {
+            box-shadow: 4px 4px 0px 0px rgba(0, 0, 1, 1);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .brutal-shadow-sm {
+            box-shadow: 2px 2px 0px 0px rgba(0, 0, 1, 1);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        /* Starker Hover-Effekt für Karten und Buttons */
+        .brutal-hover:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px 0px rgba(0, 0, 1, 1);
+        }
+        .brutal-shadow-active:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px 0px rgba(0, 0, 1, 1);
+        }
+    </style>
+</head>
+<body class="bg-[#f4f1ea] text-black min-h-screen p-4 sm:p-8">
+
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 border-4 border-black bg-[#ffde59] p-6 brutal-shadow">
+            <h1 class="text-3xl sm:text-4xl font-bold uppercase tracking-wider">Feedback-O-Mat</h1>
+            <p class="text-sm font-bold uppercase mt-1 tracking-tight">Alles was gut läuft, nervt oder verzweifeln lässt.</p>
+        </header>
+
+        <!-- Formular zum Eintragen -->
+        <div class="bg-white border-4 border-black p-6 mb-8 brutal-shadow">
+            <h2 class="text-xl font-bold uppercase mb-4 bg-[#ff91af] inline-block px-4 py-2 border-2 border-black">Neuer Eintrag</h2>
+            
+            <form id="feedbackForm" class="space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase mb-1">Um wen geht's?</label>
+                        <input type="text" id="person" required placeholder="z.B. Max Mustermann" class="w-full border-2 border-black px-3 py-2 text-sm font-bold bg-[#f4f1ea] focus:outline-none focus:bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase mb-1">Thema / Kategorie</label>
+                        <input type="text" id="topic" required placeholder="z.B. Code-Qualität, Deadline" class="w-full border-2 border-black px-3 py-2 text-sm font-bold bg-[#f4f1ea] focus:outline-none focus:bg-white">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase mb-1">Feedback-Typ</label>
+                        <select id="type" class="w-full border-2 border-black px-3 py-2 text-sm font-bold bg-[#f4f1ea] focus:outline-none">
+                            <option value="Positiv">🟢 Positiv</option>
+                            <option value="Negativ">🔴 Negativ</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase mb-1">Datum</label>
+                        <input type="date" id="date" required class="w-full border-2 border-black px-3 py-2 text-sm font-bold bg-[#f4f1ea] focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase mb-1">Beschreibung oder Notiz</label>
+                    <textarea id="note" rows="3" required placeholder="Was ist passiert? Konkrete Fakten..." class="w-full border-2 border-black px-3 py-2 text-sm font-bold bg-[#f4f1ea] focus:outline-none focus:bg-white"></textarea>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-[#D9E0FF] border-4 border-black font-bold uppercase py-3 text-sm brutal-shadow brutal-hover brutal-shadow-active transition-all cursor-pointer">
+                    Fertig & speichern
+                </button>
+            </form>
+        </div>
+
+        <!-- Filter & Lokale Liste -->
+        <div class="bg-white border-4 border-black p-6 brutal-shadow">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                <h2 class="text-xl font-bold uppercase bg-[#00ffcc] px-2 border-2 border-black">Gesammelte Einträge</h2>
+                <input type="text" id="filterInput" placeholder="Suche in Notizen..." class="w-full sm:w-64 border-2 border-black px-3 py-1.5 text-sm font-bold bg-[#f4f1ea] focus:outline-none focus:bg-white">
+            </div>
+
+            <!-- Filter-Chips Bereiche -->
+            <div class="space-y-3 mb-6 bg-[#f4f1ea] border-2 border-black p-3">
+                <div id="personChipsContainer" class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-bold uppercase mr-1">Personen:</span>
+                    <!-- Dynamische Personen-Chips -->
+                </div>
+                <div id="topicChipsContainer" class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-bold uppercase mr-1">Themen:</span>
+                    <!-- Dynamische Themen-Chips -->
+                </div>
+            </div>
+
+            <div id="feedbackList" class="space-y-4">
+                <!-- Dynamische Einträge landen hier -->
+                <p class="text-sm font-bold text-gray-500 text-center py-6">Noch keine Einträge vorhanden.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // TRAGE HIER DEINE GOOGLE APPS SCRIPT WEB-APP URL EIN:
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzDV7o6YzHterkLBSIYNYxIl4bfcwI8D9aGNdOeUfRlGMSm9cvcP5TNiUakuwzvTM16mA/exec';
+
+        document.getElementById('date').valueAsDate = new Date();
+
+        let localFeedbacks = JSON.parse(localStorage.getItem('feedback_items_brutal')) || [];
+        let activeFilterPerson = null;
+        let activeFilterTopic = null;
+
+        renderApp();
+
+        document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'SENDE DATEN...';
+
+            const newEntry = {
+                date: document.getElementById('date').value,
+                person: document.getElementById('person').value.trim(),
+                topic: document.getElementById('topic').value.trim(),
+                type: document.getElementById('type').value,
+                note: document.getElementById('note').value.trim()
+            };
+
+            localFeedbacks.unshift(newEntry);
+            localStorage.setItem('feedback_items_brutal', JSON.stringify(localFeedbacks));
+            renderApp();
+
+            if (WEB_APP_URL !== 'HIER_GOOGLE_APPS_SCRIPT_URL_EINTRAGEN') {
+                try {
+                    await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newEntry)
+                    });
+                    alert('Erfolgreich im Google Sheet gespeichert!');
+                } catch (error) {
+                    console.error('Fehler:', error);
+                    alert('Lokal gespeichert, aber Sheet-Sync fehlgeschlagen.');
+                }
+            } else {
+                alert('Lokal gespeichert! (Google Sheet URL fehlt noch).');
+            }
+
+            document.getElementById('note').value = '';
+            document.getElementById('person').value = '';
+            document.getElementById('topic').value = '';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Fertig & speichern';
+        });
+
+        // Textsuche-Event
+        document.getElementById('filterInput').addEventListener('input', function(e) {
+            renderApp();
+        });
+
+        function setFilter(type, value) {
+            if (type === 'person') {
+                activeFilterPerson = (activeFilterPerson === value) ? null : value;
+            } else if (type === 'topic') {
+                activeFilterTopic = (activeFilterTopic === value) ? null : value;
+            }
+            renderApp();
+        }
+
+        function renderApp() {
+            renderChips();
+            renderList();
+        }
+
+        function renderChips() {
+            const persons = [...new Set(localFeedbacks.map(item => item.person))];
+            const topics = [...new Set(localFeedbacks.map(item => item.topic))];
+
+            const personContainer = document.getElementById('personChipsContainer');
+            const topicContainer = document.getElementById('topicChipsContainer');
+
+            // Personen Chips aufbauen
+            let personHtml = `<span class="text-xs font-bold uppercase mr-1">Personen:</span>`;
+            personHtml += `<button onclick="setFilter('person', null)" class="text-xs font-bold px-2 py-1 border-2 border-black cursor-pointer brutal-hover transition-all ${activeFilterPerson === null ? 'bg-black text-white' : 'bg-white'}">Alle</button>`;
+            personHtml += persons.map(p => `
+                <button onclick="setFilter('person', '${escapeHtml(p)}')" class="text-xs font-bold px-2 py-1 border-2 border-black cursor-pointer brutal-hover transition-all ${activeFilterPerson === p ? 'bg-black text-white' : 'bg-white'}">${escapeHtml(p)}</button>
+            `).join('');
+            personContainer.innerHTML = personHtml;
+
+            // Themen Chips aufbauen
+            let topicHtml = `<span class="text-xs font-bold uppercase mr-1">Themen:</span>`;
+            topicHtml += `<button onclick="setFilter('topic', null)" class="text-xs font-bold px-2 py-1 border-2 border-black cursor-pointer brutal-hover transition-all ${activeFilterTopic === null ? 'bg-black text-white' : 'bg-white'}">Alle</button>`;
+            topicHtml += topics.map(t => `
+                <button onclick="setFilter('topic', '${escapeHtml(t)}')" class="text-xs font-bold px-2 py-1 border-2 border-black cursor-pointer brutal-hover transition-all ${activeFilterTopic === t ? 'bg-black text-white' : 'bg-white'}">#${escapeHtml(t)}</button>
+            `).join('');
+            topicContainer.innerHTML = topicHtml;
+        }
+
+        function renderList() {
+            const searchQuery = document.getElementById('filterInput').value.toLowerCase();
+            
+            const filtered = localFeedbacks.filter(item => {
+                const matchesPerson = activeFilterPerson ? item.person === activeFilterPerson : true;
+                const matchesTopic = activeFilterTopic ? item.topic === activeFilterTopic : true;
+                const matchesSearch = searchQuery === '' || 
+                    item.person.toLowerCase().includes(searchQuery) || 
+                    item.topic.toLowerCase().includes(searchQuery) || 
+                    item.note.toLowerCase().includes(searchQuery);
+
+                return matchesPerson && matchesTopic && matchesSearch;
+            });
+
+            const listContainer = document.getElementById('feedbackList');
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `<p class="text-sm font-bold text-gray-500 text-center py-6">Keine passenden Einträge gefunden.</p>`;
+                return;
+            }
+
+            listContainer.innerHTML = filtered.map(item => `
+                <div class="p-4 border-4 border-black ${item.type === 'Positiv' ? 'bg-[#bbf2f6]' : 'bg-[#ff91af]'} brutal-shadow-sm brutal-hover flex flex-col sm:flex-row justify-between items-start gap-3">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold uppercase bg-white px-2 py-0.5 border-2 border-black">${escapeHtml(item.person)}</span>
+                            <span class="text-xs font-bold uppercase px-2 py-0.5 border-2 border-black bg-white">${item.type}</span>
+                            <span class="text-xs font-bold bg-black text-white px-2 py-0.5">#${escapeHtml(item.topic)}</span>
+                        </div>
+                        <p class="text-sm font-bold mt-2 text-black">${escapeHtml(item.note)}</p>
+                    </div>
+                    <span class="text-xs font-bold bg-white border-2 border-black px-2 py-1">${item.date}</span>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
