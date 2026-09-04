@@ -58,7 +58,7 @@
                         <input type="text" id="person" required placeholder="z.B. Max, Anna, Tom" class="w-full border-2 border-black px-3 py-2 text-sm font-bold bg-[#f4f1ea] focus:outline-none focus:bg-white">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase mb-1">Thema / Kategorie</label>
+                        <label class="block text-xs font-bold uppercase mb-1">Thema / Kategorie (Mehrere mit Komma trennen)</label>
                         <input type="text" id="topic" required placeholder="z.B. Code-Qualität, Deadline" class="w-full border-2 border-black px-3 py-2 text-sm font-bold bg-[#f4f1ea] focus:outline-none focus:bg-white">
                     </div>
                 </div>
@@ -140,14 +140,18 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'SENDE DATEN...';
 
-            // Personen-Feld auslesen, am Komma trennen, Leerzeichen entfernen und leere Strings filtern
+            // Personen-Feld auslesen, am Komma trennen
             const rawPersons = document.getElementById('person').value;
             const personsArray = rawPersons.split(',').map(p => p.trim()).filter(p => p.length > 0);
 
+            // Themen-Feld auslesen, am Komma trennen
+            const rawTopics = document.getElementById('topic').value;
+            const topicsArray = rawTopics.split(',').map(t => t.trim()).filter(t => t.length > 0);
+
             const newEntry = {
                 date: document.getElementById('date').value,
-                persons: personsArray, // Speichert als Array (z.B. ["Max", "Anna"])
-                topic: document.getElementById('topic').value.trim(),
+                persons: personsArray, // Array von Personen
+                topics: topicsArray,   // Array von Themen
                 type: document.getElementById('type').value,
                 note: document.getElementById('note').value.trim()
             };
@@ -158,10 +162,11 @@
 
             if (WEB_APP_URL !== 'HIER_GOOGLE_APPS_SCRIPT_URL_EINTRAGEN') {
                 try {
-                    // Für Google Sheets übergeben wir die Personen als kommaseparierten String
+                    // Für Google Sheets übergeben wir Arrays als kommaseparierte Strings
                     const payload = {
                         ...newEntry,
-                        person: personsArray.join(', ')
+                        person: personsArray.join(', '),
+                        topic: topicsArray.join(', ')
                     };
                     await fetch(WEB_APP_URL, {
                         method: 'POST',
@@ -230,7 +235,7 @@
         }
 
         function renderChips() {
-            // Alle eindeutigen Personen aus allen Arrays sammeln (Rückwärtskompatibilität für alte Einträge, falls vorhanden)
+            // Eindeutige Personen sammeln (mit Fallback für ältere Einträge)
             const allPersonsSet = new Set();
             localFeedbacks.forEach(item => {
                 if (Array.isArray(item.persons)) {
@@ -241,7 +246,17 @@
             });
             const persons = [...allPersonsSet];
 
-            const topics = [...new Set(localFeedbacks.map(item => item.topic))];
+            // Eindeutige Themen sammeln (mit Fallback für ältere String-Themen)
+            const allTopicsSet = new Set();
+            localFeedbacks.forEach(item => {
+                if (Array.isArray(item.topics)) {
+                    item.topics.forEach(t => allTopicsSet.add(t));
+                } else if (item.topic) {
+                    // Fallback, falls ein altes einzelnes Topic als String vorlag
+                    allTopicsSet.add(item.topic);
+                }
+            });
+            const topics = [...allTopicsSet];
 
             const personContainer = document.getElementById('personChipsContainer');
             const topicContainer = document.getElementById('topicChipsContainer');
@@ -256,7 +271,7 @@
             let topicHtml = `<span class="text-xs font-bold uppercase mr-1">Themen:</span>`;
             topicHtml += `<button onclick="setFilter('topic', null)" class="text-xs font-bold px-2 py-1 border-2 border-black cursor-pointer brutal-hover transition-all ${activeFilterTopic === null ? 'bg-black text-white' : 'bg-white'}">Alle</button>`;
             topicHtml += topics.map(t => `
-                <button onclick="setFilter('topic', '${escapeHtml(t)}')" class="text-xs font-bold px-2 py-1 border-2 border-black cursor-pointer brutal-hover transition-all ${activeFilterTopic === t ? 'bg-black text-white' : 'bg-white'}">#${escapeHtml(t)}</button>
+                <button onclick="setFilter('topic', '${escapeHtml(t)}')" class="text-xs font-bold px-2 py-1 border-2 border-black cursor-pointer brutal-hover transition-all ${activeFilterTopic === t ? 'bg-black text-white' : 'bg-white'}">${escapeHtml(t)}</button>
             `).join('');
             topicContainer.innerHTML = topicHtml;
         }
@@ -268,16 +283,18 @@
             const indexedFeedbacks = localFeedbacks.map((item, originalIndex) => ({ item, originalIndex }));
 
             const filtered = indexedFeedbacks.filter(({ item }) => {
-                // Abfrage, ob die gefilterte Person im Array enthalten ist (Fallback für alte Single-String Einträge)
                 const itemPersons = Array.isArray(item.persons) ? item.persons : [item.person];
+                const itemTopics = Array.isArray(item.topics) ? item.topics : [item.topic];
+
                 const matchesPerson = activeFilterPerson ? itemPersons.includes(activeFilterPerson) : true;
-                
-                const matchesTopic = activeFilterTopic ? item.topic === activeFilterTopic : true;
+                const matchesTopic = activeFilterTopic ? itemTopics.includes(activeFilterTopic) : true;
                 
                 const personsString = itemPersons.join(' ').toLowerCase();
+                const topicsString = itemTopics.join(' ').toLowerCase();
+                
                 const matchesSearch = searchQuery === '' || 
                     personsString.includes(searchQuery) || 
-                    item.topic.toLowerCase().includes(searchQuery) || 
+                    topicsString.includes(searchQuery) || 
                     item.note.toLowerCase().includes(searchQuery);
 
                 return matchesPerson && matchesTopic && matchesSearch;
@@ -290,8 +307,14 @@
 
             listContainer.innerHTML = filtered.map(({ item, originalIndex }) => {
                 const itemPersons = Array.isArray(item.persons) ? item.persons : [item.person];
+                const itemTopics = Array.isArray(item.topics) ? item.topics : [item.topic];
+
                 const personsBadgesHtml = itemPersons.map(p => 
                     `<span class="font-bold uppercase bg-white px-2 py-0.5 border-2 border-black">${escapeHtml(p)}</span>`
+                ).join(' ');
+
+                const topicsBadgesHtml = itemTopics.map(t => 
+                    `<span class="text-xs font-bold bg-black text-white px-2 py-0.5">${escapeHtml(t)}</span>`
                 ).join(' ');
 
                 return `
@@ -300,7 +323,7 @@
                             <div class="flex items-center gap-2 flex-wrap">
                                 ${personsBadgesHtml}
                                 <span class="text-xs font-bold uppercase px-2 py-0.5 border-2 border-black bg-white">${item.type}</span>
-                                <span class="text-xs font-bold bg-black text-white px-2 py-0.5">#${escapeHtml(item.topic)}</span>
+                                ${topicsBadgesHtml}
                             </div>
                             <p class="text-sm font-bold mt-2 text-black leading-relaxed">${escapeHtml(item.note)}</p>
                         </div>
