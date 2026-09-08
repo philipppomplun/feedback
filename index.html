@@ -126,7 +126,6 @@
     </div>
 
     <script>
-        // TRAGE HIER DEINE GOOGLE APPS SCRIPT WEB-APP URL EIN:
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzDV7o6YzHterkLBSIYNYxIl4bfcwI8D9aGNdOeUfRlGMSm9cvcP5TNiUakuwzvTM16mA/exec';
 
         document.getElementById('date').valueAsDate = new Date();
@@ -135,7 +134,42 @@
         let activeFilterPerson = null;
         let activeFilterTopic = null;
 
-        renderApp();
+        // Beim Start direkt vom Google Sheet laden
+        initApp();
+
+        async function initApp() {
+            if (WEB_APP_URL !== 'HIER_GOOGLE_APPS_SCRIPT_URL_EINTRAGEN') {
+                try {
+                    const response = await fetch(WEB_APP_URL);
+                    const data = await response.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        // Daten vom Sheet verarbeiten und in unser Format mappen
+                        localFeedbacks = data.map(item => {
+                            // Je nach Spaltenbezeichnung im Sheet flexibel abgreifen
+                            const rawDate = item.date || item.datum || '';
+                            const formattedDate = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
+                            
+                            const pStr = item.person || item.personen || '';
+                            const tStr = item.topic || item.themen || item.thema || '';
+
+                            return {
+                                date: formattedDate || new Date().toISOString().split('T')[0],
+                                persons: pStr ? String(pStr).split(',').map(p => p.trim()).filter(p => p) : [],
+                                topics: tStr ? String(tStr).split(',').map(t => t.trim()).filter(t => t) : [],
+                                type: item.type || item.typ || 'Positiv',
+                                ticket: item.ticket || '',
+                                note: item.note || item.notiz || ''
+                            };
+                        }).reverse(); // Neueste zuerst
+
+                        localStorage.setItem('feedback_items_brutal', JSON.stringify(localFeedbacks));
+                    }
+                } catch (error) {
+                    console.error('Konnte Daten nicht vom Sheet laden, nutze lokalen Cache:', error);
+                }
+            }
+            renderApp();
+        }
 
         document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -317,7 +351,6 @@
                     `<span class="text-xs font-bold bg-black text-white px-2 py-0.5">${escapeHtml(t)}</span>`
                 ).join(' ');
 
-                // Ticket-Button generieren, falls ein Link hinterlegt wurde
                 const ticketButtonHtml = item.ticket ? 
                     `<a href="${escapeHtml(item.ticket)}" target="_blank" class="text-xs font-bold bg-white border-2 border-black px-2 py-1 brutal-hover flex items-center gap-1">🔗 Ticket</a>` : '';
 
@@ -345,7 +378,7 @@
 
         function escapeHtml(str) {
             if (!str) return '';
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
     </script>
 </body>
