@@ -126,7 +126,7 @@
     </div>
 
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzDV7o6YzHterkLBSIYNYxIl4bfcwI8D9aGNdOeUfRlGMSm9cvcP5TNiUakuwzvTM16mA/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx__VKcbruhXjU50VvJWw6XxGCtt_3PlBDOQU9vwpfVZPw9VoGgvIlhIoZUVhtp_favfA/exec';
 
         document.getElementById('date').valueAsDate = new Date();
 
@@ -142,23 +142,38 @@
                 try {
                     const response = await fetch(WEB_APP_URL);
                     const data = await response.json();
+                    
                     if (Array.isArray(data) && data.length > 0) {
-                        // Daten vom Sheet verarbeiten und in unser Format mappen
                         localFeedbacks = data.map(item => {
-                            // Je nach Spaltenbezeichnung im Sheet flexibel abgreifen
-                            const rawDate = item.date || item.datum || '';
-                            const formattedDate = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
-                            
-                            const pStr = item.person || item.personen || '';
-                            const tStr = item.topic || item.themen || item.thema || '';
+                            // Mappe alle Spellings im Sheet auf Kleinbuchstaben (macht es unabhängig von Groß/Kleinschreibung im Sheet)
+                            const cleanItem = {};
+                            Object.keys(item).forEach(key => {
+                                cleanItem[key.toLowerCase().trim()] = item[key];
+                            });
+
+                            // Flexibel nach Spaltennamen suchen (egal ob Deutsch oder Englisch im Sheet)
+                            const rawDate = cleanItem.date || cleanItem.datum || '';
+                            let formattedDate = new Date().toISOString().split('T')[0];
+                            if (rawDate) {
+                                const parsed = new Date(rawDate);
+                                if (!isNaN(parsed.getTime())) {
+                                    formattedDate = parsed.toISOString().split('T')[0];
+                                }
+                            }
+
+                            const pStr = cleanItem.person || cleanItem.personen || cleanItem.wer || '';
+                            const tStr = cleanItem.topic || cleanItem.themen || cleanItem.thema || cleanItem.kategorie || '';
+                            const typeVal = cleanItem.type || cleanItem.typ || cleanItem.feedback || 'Positiv';
+                            const ticketVal = cleanItem.ticket || cleanItem.link || cleanItem.url || '';
+                            const noteVal = cleanItem.note || cleanItem.notiz || cleanItem.beschreibung || '';
 
                             return {
-                                date: formattedDate || new Date().toISOString().split('T')[0],
+                                date: formattedDate,
                                 persons: pStr ? String(pStr).split(',').map(p => p.trim()).filter(p => p) : [],
                                 topics: tStr ? String(tStr).split(',').map(t => t.trim()).filter(t => t) : [],
-                                type: item.type || item.typ || 'Positiv',
-                                ticket: item.ticket || '',
-                                note: item.note || item.notiz || ''
+                                type: typeVal.toString().toLowerCase().includes('neg') ? 'Negativ' : 'Positiv',
+                                ticket: ticketVal,
+                                note: noteVal
                             };
                         }).reverse(); // Neueste zuerst
 
