@@ -126,7 +126,7 @@
     </div>
 
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxV_tAwtf8s7JBwC21tmqnnxHLYD89RuXL-85_wQE2w5XR4q9_yMeyT63Xsjn0_MWrtqQ/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwt1qJFXqaQdyEzwbj9zi-XK3jaRESTN01tODTFiBmqcooGo76oZySnN7G5XnMCMNCD_A/exec';
 
         document.getElementById('date').valueAsDate = new Date();
 
@@ -253,20 +253,22 @@
 
         async function deleteEntry(indexInLocalArray) {
             if (confirm("Diesen Eintrag wirklich löschen?")) {
-                const itemToDelete = localFeedbacks[indexInLocalArray];
-                
                 // Lokal entfernen & speichern
                 localFeedbacks.splice(indexInLocalArray, 1);
                 localStorage.setItem('feedback_items_brutal', JSON.stringify(localFeedbacks));
                 renderApp();
 
-                // An Google Sheet senden via GET-Parameter (umgeht jegliche CORS/no-cors Probleme)
-                if (WEB_APP_URL !== 'HIER_GOOGLE_APPS_SCRIPT_URL_EINTRAGEN' && itemToDelete.rowindex) {
+                // Gesamte aktuelle Liste an Google Sheet senden, damit es dort synchronisiert wird
+                if (WEB_APP_URL !== 'HIER_GOOGLE_APPS_SCRIPT_URL_EINTRAGEN') {
                     try {
-                        const deleteUrl = `${WEB_APP_URL}?action=delete&row=${itemToDelete.rowindex}`;
-                        await fetch(deleteUrl);
+                        await fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'sync', items: localFeedbacks })
+                        });
                     } catch (error) {
-                        console.error('Lösch-Sync Fehler:', error);
+                        console.error('Sync-Fehler beim Löschen:', error);
                     }
                 }
             }
