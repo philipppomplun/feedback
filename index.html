@@ -126,7 +126,7 @@
     </div>
 
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzj62mSfo1o1S0ShF3PpLEV32vPls5A9qMaJUnDuJTkcH0akDvMnyKTRkvoxau88UI8nA/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzUbay3nScNYMNi_mdvRhxMpLARmYyRiz4Xd9jxc-NE6YY6cUYmMFercU3XxUDGq1HSrw/exec';
 
         document.getElementById('date').valueAsDate = new Date();
 
@@ -260,14 +260,14 @@
                 localStorage.setItem('feedback_items_brutal', JSON.stringify(localFeedbacks));
                 renderApp();
 
-                // An Google Sheet senden, damit es dort auch gelöscht wird
-                if (WEB_APP_URL !== 'HIER_GOOGLE_APPS_SCRIPT_URL_EINTRAGEN' && itemToDelete.id) {
+                // An Google Sheet senden mit der exakten Zeilennummer
+                if (WEB_APP_URL !== 'HIER_GOOGLE_APPS_SCRIPT_URL_EINTRAGEN' && itemToDelete.rowindex) {
                     try {
                         await fetch(WEB_APP_URL, {
                             method: 'POST',
                             mode: 'no-cors',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'delete', id: itemToDelete.id })
+                            body: JSON.stringify({ action: 'delete', rowIndex: itemToDelete.rowindex })
                         });
                     } catch (error) {
                         console.error('Lösch-Sync Fehler:', error);
