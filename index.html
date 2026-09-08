@@ -251,11 +251,28 @@
             renderApp();
         }
 
-        function deleteEntry(indexInLocalArray) {
+        async function deleteEntry(indexInLocalArray) {
             if (confirm("Diesen Eintrag wirklich löschen?")) {
+                const itemToDelete = localFeedbacks[indexInLocalArray];
+                
+                // Lokal entfernen
                 localFeedbacks.splice(indexInLocalArray, 1);
                 localStorage.setItem('feedback_items_brutal', JSON.stringify(localFeedbacks));
                 renderApp();
+
+                // An Google Sheet senden, damit es dort auch gelöscht wird
+                if (WEB_APP_URL !== 'HIER_GOOGLE_APPS_SCRIPT_URL_EINTRAGEN' && itemToDelete.id) {
+                    try {
+                        await fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'delete', id: itemToDelete.id })
+                        });
+                    } catch (error) {
+                        console.error('Lösch-Sync Fehler:', error);
+                    }
+                }
             }
         }
 
